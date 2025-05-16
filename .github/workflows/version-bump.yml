@@ -1,0 +1,75 @@
+name: Version Bump and Publish
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    # Don't trigger on README updates or documentation changes
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+
+jobs:
+  version-bump-and-publish:
+    runs-on: ubuntu-latest
+    # Prevent this from running when it's a release commit
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    
+    # We need write permission to push the version change back to the repository
+    permissions:
+      contents: write
+    
+    steps:
+      # Check out the repository - uses the GITHUB_TOKEN automatically provided by GitHub Actions
+      # This token has limited permissions and expires after the workflow run completes
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+          token: ${{ secrets.GITHUB_TOKEN }}  # Using the built-in token for checkout
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: 'https://registry.npmjs.org/'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+        
+      - name: Run linting
+        run: npm run lint
+        continue-on-error: true
+      
+      - name: Run tests
+        run: npm test
+        continue-on-error: true
+      
+      # Configure Git identity for the version bump commit
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      # Bump version and create a commit with the new version
+      - name: Bump version
+        run: |
+          npm version patch -m "chore(release): bump version to %s [skip ci]"
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Bumped version to $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      
+      # Push the version bump commit and tags back to the repository
+      # Uses the GITHUB_TOKEN with write permissions
+      - name: Push changes
+        run: git push --follow-tags
+        
+      # Publish to npm using the NPM_TOKEN secret
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
