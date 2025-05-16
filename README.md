@@ -6,7 +6,7 @@ A CLI tool to create GitHub PRs from Linear tasks with standardized naming conve
 
 - Create GitHub PRs directly from Linear task IDs or branch names
 - Extract Linear task details automatically
-- Preserve exact branch names like `feature/utxhk-3264-tribe-sync-card`
+- Preserve exact branch names like `feature/team-1234-cool-feature`
 - Format PR titles consistently with Linear task references
 - Support for both Linear API keys and OAuth authentication
 - Automatic module name detection from Linear projects
@@ -30,10 +30,10 @@ linear-pr setup
 
 ```bash
 # From a Linear task ID
-linear-pr create TEAM-123 -t feat -m auth
+linear-pr create TASK-123 -t feat -m auth
 
 # From a branch name (preserves exact branch name)
-linear-pr create feature/team-123-new-feature -t feat
+linear-pr create feature/team-123-new-feature
 ```
 
 ## Usage
@@ -43,7 +43,7 @@ linear-pr create feature/team-123-new-feature -t feat
 #### With Exact Branch Name
 
 ```bash
-linear-pr create feature/utxhk-3208-tribe-failed-to-look-up-with-merchant-category -t feat
+linear-pr create feature/team-1234-cool-feature
 ```
 
 This will:
@@ -113,7 +113,7 @@ Supports both Personal API keys and OAuth2 for Linear authentication. Run `linea
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/linear-pr.git
+git clone https://github.com/sagar.saud/linear-pr.git
 cd linear-pr
 
 # Install dependencies
