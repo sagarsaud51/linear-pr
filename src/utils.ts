@@ -1,6 +1,4 @@
 import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * Validates if a string is a valid Linear task ID (e.g., ENG-123)

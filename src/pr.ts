@@ -1,7 +1,7 @@
 import chalk from 'chalk';
-import { getTask, attachPRToTask, isTaskAssignedToCurrentUser } from './linear.js';
+import { getTask, isTaskAssignedToCurrentUser } from './linear.js';
 import { createBranch, createPullRequest as createGithubPR } from './github.js';
-import { createBranchName, getCurrentBranch, extractTaskIdFromBranchName } from './utils.js';
+import { getCurrentBranch, extractTaskIdFromBranchName } from './utils.js';
 import inquirer from 'inquirer';
 
 interface CreatePROptions {

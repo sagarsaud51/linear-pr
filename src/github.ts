@@ -3,8 +3,6 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { config } from './config.js';
 import { isGitRepository, runGitCommand } from './utils.js';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * Get or create an Octokit client using stored token
