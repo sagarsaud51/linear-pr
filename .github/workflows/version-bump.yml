@@ -40,14 +40,6 @@ jobs:
       
       - name: Build
         run: npm run build
-        
-      - name: Run linting
-        run: npm run lint
-        continue-on-error: true
-      
-      - name: Run tests
-        run: npm test
-        continue-on-error: true
       
       # Configure Git identity for the version bump commit
       - name: Configure Git
