@@ -13,7 +13,7 @@ interface CreatePROptions {
 }
 
 /**
- * Main function to create a PR from a Linear task
+ * Main function to create a PR from a Linear task 
  */
 export async function createPullRequest(options: CreatePROptions): Promise<void> {
   // Default to using exact branch name (true)
