@@ -1,6 +1,6 @@
 {
   "name": "linear-pr",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "CLI tool to create PRs from Linear tasks with standardized naming conventions",
   "main": "dist/index.js",
   "bin": {
