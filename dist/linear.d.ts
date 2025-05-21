@@ -35,3 +35,18 @@ export declare function isTaskAssignedToCurrentUser(taskId: string): Promise<boo
  * Update a Linear task with a PR link
  */
 export declare function attachPRToTask(taskId: string, prUrl: string): Promise<void>;
+/**
+ * Get all tasks assigned to the current user
+ */
+export declare function getAssignedTasks(limit?: number): Promise<Array<{
+    id: string;
+    taskId: string;
+    title: string;
+    state: string;
+    description: string;
+    url: string;
+    projectName: string | null;
+    hasExistingPR: boolean;
+    hasPRClosed: boolean;
+    prUrl?: string;
+}>>;

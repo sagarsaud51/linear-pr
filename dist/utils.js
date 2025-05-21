@@ -33,7 +33,10 @@ export function createBranchName(taskId, taskTitle) {
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-')
         .trim();
-    return `${taskId.toLowerCase()}-${sanitizedTitle}`;
+    // Extract team prefix from taskId (e.g., "TEAM" from "TEAM-123")
+    const teamPrefix = taskId.split('-')[0].toLowerCase();
+    // Format the branch name according to the required format: feature/team-XXXX-description
+    return `feature/${teamPrefix}-${taskId.split('-')[1]}-${sanitizedTitle}`;
 }
 /**
  * Execute a git command and return the output
@@ -72,8 +75,27 @@ export function getTaskIdFromBranch(branchName) {
     return match ? match[1].toUpperCase() : null;
 }
 /**
+ * Format a string to be a valid PR scope:
+ * lowercase, containing only letters, numbers, and hyphens
+ */
+export function formatScope(input) {
+    // Convert to lowercase
+    let result = input.toLowerCase();
+    // Replace any characters that aren't lowercase letters, numbers, or hyphens with hyphens
+    result = result.replace(/[^a-z0-9-]/g, '-');
+    // Remove any duplicate hyphens
+    result = result.replace(/-+/g, '-');
+    // Remove leading or trailing hyphens
+    result = result.replace(/^-+|-+$/g, '');
+    return result;
+}
+/**
  * Creates a PR title from the given parameters
  */
 export function createPRTitle(type, module, taskId, description) {
-    return `${type}(${module}): [${taskId}] ${description}`;
+    // Ensure module follows required format
+    const formattedModule = formatScope(module);
+    // Ensure taskId is uppercase
+    const formattedTaskId = taskId.toUpperCase();
+    return `${type}(${formattedModule}): [${formattedTaskId}] ${description}`;
 }

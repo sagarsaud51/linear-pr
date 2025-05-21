@@ -31,6 +31,11 @@ export declare function getCurrentBranch(): string;
  */
 export declare function getTaskIdFromBranch(branchName: string): string | null;
 /**
+ * Format a string to be a valid PR scope:
+ * lowercase, containing only letters, numbers, and hyphens
+ */
+export declare function formatScope(input: string): string;
+/**
  * Creates a PR title from the given parameters
  */
 export declare function createPRTitle(type: string, module: string, taskId: string, description: string): string;

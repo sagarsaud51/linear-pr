@@ -378,4 +378,113 @@ export async function attachPRToTask(taskId: string, prUrl: string): Promise<voi
   } catch (error) {
     console.warn(chalk.yellow(`Could not add PR link to Linear task: ${error instanceof Error ? error.message : String(error)}`));
   }
+}
+
+/**
+ * Get all tasks assigned to the current user
+ */
+export async function getAssignedTasks(limit = 50): Promise<Array<{
+  id: string;
+  taskId: string;
+  title: string;
+  state: string;
+  description: string;
+  url: string;
+  projectName: string | null;
+  hasExistingPR: boolean;
+  hasPRClosed: boolean;
+  prUrl?: string;
+}>> {
+  const client = await getLinearClient();
+  
+  try {
+    const currentUser = await getCurrentUser();
+    
+    // Get issues assigned to the current user
+    const { nodes } = await client.issues({
+      filter: {
+        assignee: { id: { eq: currentUser.id } },
+        state: { name: { nin: ["Completed", "Canceled"] } } // Exclude completed or canceled tasks
+      },
+      first: limit
+    });
+    
+    if (!nodes || nodes.length === 0) {
+      return [];
+    }
+    
+    // Process each issue to get additional information
+    const tasks = await Promise.all(nodes.map(async (issue) => {
+      // Get project name if available
+      let projectName = null;
+      if (issue.project) {
+        const project = await issue.project;
+        if (project) {
+          projectName = project.name;
+        }
+      }
+      
+      // Check if there's an existing PR attached
+      let hasExistingPR = false;
+      let hasPRClosed = false;
+      let prUrl: string | undefined = undefined;
+      
+      // Get state information
+      const state = await issue.state;
+      
+      // Check comments for PR links and status (simple heuristic)
+      try {
+        const comments = await issue.comments();
+        
+        // Look for PR links in comments
+        for (const comment of comments.nodes) {
+          if (comment.body.includes('github.com') && 
+              (comment.body.includes('/pull/') || comment.body.includes('Created PR'))) {
+            
+            hasExistingPR = true;
+            
+            // Extract the PR URL using regex
+            const prUrlMatch = comment.body.match(/https:\/\/github\.com\/[^\/]+\/[^\/]+\/pull\/\d+/);
+            if (prUrlMatch) {
+              prUrl = prUrlMatch[0];
+              
+              // Check if the PR is closed by looking for a subsequent comment
+              const prNumber = prUrl.split('/').pop();
+              const prClosedComment = comments.nodes.find(c => 
+                c.body.includes(`closed pull request #${prNumber}`) || 
+                c.body.includes(`closed PR #${prNumber}`) ||
+                c.body.includes(`PR #${prNumber} was closed`) ||
+                c.body.includes(`Pull request #${prNumber} was closed`)
+              );
+              
+              if (prClosedComment) {
+                hasPRClosed = true;
+              }
+            }
+            
+            break;
+          }
+        }
+      } catch (e) {
+        // Ignore errors from comments fetch
+      }
+      
+      return {
+        id: issue.id,
+        taskId: issue.identifier,
+        title: issue.title,
+        state: state ? state.name : "Unknown", 
+        description: issue.description || '',
+        url: issue.url,
+        projectName,
+        hasExistingPR,
+        hasPRClosed,
+        prUrl
+      };
+    }));
+    
+    return tasks;
+  } catch (error) {
+    throw new Error(`Failed to fetch assigned tasks: ${error instanceof Error ? error.message : String(error)}`);
+  }
 } 
