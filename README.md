@@ -24,6 +24,9 @@ npm install -g linear-pr
 ```bash
 # Configure Linear and GitHub credentials
 linear-pr setup
+
+# Configure everything by CLI
+linear-pr setup --linear-api-key ${LINEAR_API_KEY} --github-token ${GITHUB_TOKEN}
 ```
 
 ### Create a PR
