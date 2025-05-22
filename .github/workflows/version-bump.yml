@@ -5,120 +5,101 @@ on:
     branches:
       - master
       - main
-    # Don't trigger on README updates or documentation changes
     paths-ignore:
-      # - '**.md'
       - 'docs/**'
       - '.github/**'
 
 jobs:
   version-bump:
     runs-on: ubuntu-latest
-    # Prevent this from running when it's a release commit
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
-    
-    # We need write permissions for pull requests and contents
+
     permissions:
       contents: write
       pull-requests: write
-    
+
     outputs:
       version: ${{ steps.version-info.outputs.version }}
       branch_name: ${{ steps.create-branch.outputs.branch_name }}
       pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
-    
+
     steps:
-      # Check out the repository with all history for proper versioning
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for tags
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Setup Node.js with caching
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org/'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run tests
         run: npm test
-        continue-on-error: true  # Don't fail if tests fail, but log it
-      
+        continue-on-error: true
+
       - name: Build
         run: npm run build
-      
-      # Configure Git identity for commits
+
       - name: Configure Git
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-      
-      # Determine version bump type based on commit messages
+
       - name: Determine version bump type
         id: bump-type
         run: |
-          # Default to patch
           BUMP_TYPE="patch"
-          
-          # Check for minor version keywords in recent commits
-          if git log -10 --pretty=format:"%s" | grep -E "(feat|feature):|feat\(|feature\("; then
+          if git log -10 --pretty=format:"%s" | grep -E "(feat|feature):|feat\\(|feature\\("; then
             BUMP_TYPE="minor"
           fi
-          
-          # Check for major version keywords in recent commits
-          if git log -10 --pretty=format:"%s" | grep -E "BREAKING CHANGE:|breaking change:|major:|MAJOR:"; then
+          if git log -10 --pretty=format:"%s" | grep -Ei "BREAKING CHANGE:|major:"; then
             BUMP_TYPE="major"
           fi
-          
-          echo "Determined version bump type: $BUMP_TYPE"
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
-      
-      # Create a new branch for the version bump
+
       - name: Create version bump branch
         id: create-branch
         run: |
           BRANCH_NAME="version-bump-$(date +%s)"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          git checkout -b $BRANCH_NAME
-      
-      # Commit any changes from the build process
+          git checkout -b "$BRANCH_NAME"
+
       - name: Commit build artifacts
         run: |
           git add .
-          git diff-index --quiet HEAD || git commit -m "chore: update build artifacts"
-      
-      # Bump version and create a commit with the new version
+          if git diff --cached --quiet; then
+            echo "No build changes to commit."
+          else
+            git commit -m "chore: update build artifacts"
+          fi
+
       - name: Bump version
         run: |
           npm version ${{ steps.bump-type.outputs.bump_type }} -m "chore(release): bump version to %s"
-      
-      # Get and store the new version number
+
       - name: Get version info
         id: version-info
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "Bumped version to $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      
-      # Push the version bump branch
+
       - name: Push version bump branch
         run: |
           git push origin ${{ steps.create-branch.outputs.branch_name }}
-          
-      # Get commit information for PR body
+
       - name: Get commit info
         id: commit-info
         run: |
           COMMIT_INFO=$(git log -1 --pretty=format:"%h %s")
           echo "commit_info=$COMMIT_INFO" >> $GITHUB_OUTPUT
-      
-      # Create a PR for the version bump
+
       - name: Create Pull Request
         id: create-pr
         uses: peter-evans/create-pull-request@v6
@@ -128,29 +109,26 @@ jobs:
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: ${{ steps.create-branch.outputs.branch_name }}
-          base: ${{ github.ref_name }}  # Dynamic base branch (main or master)
+          base: ${{ github.event.repository.default_branch }}
           delete-branch: true
           title: "chore(release): bump version to ${{ steps.version-info.outputs.version }}"
           body: |
             ## Automated Version Bump
-            
-            This PR bumps the version to ${{ steps.version-info.outputs.version }} for release.
-            
-            ### Type of change
-            - Version bump type: **${{ steps.bump-type.outputs.bump_type }}**
-            
-            ### Changes included
-            ```
+
+            This PR bumps the version to `${{ steps.version-info.outputs.version }}` for release.
+
+            **Version bump type:** `${{ steps.bump-type.outputs.bump_type }}`
+
+            ### Recent Commit
             ${{ steps.commit-info.outputs.commit_info }}
-            ```
-            
+
             ### Release notes
-            This release contains changes from all commits since the last version bump.
+            Includes changes since the last version.
+
           labels: |
             automated
             version-bump
-      
-      # Add PR info to job summary
+
       - name: Add PR info to job summary
         if: steps.create-pr.outputs.pull-request-number
         run: |
@@ -159,49 +137,47 @@ jobs:
           echo "- PR: #${{ steps.create-pr.outputs.pull-request-number }}" >> $GITHUB_STEP_SUMMARY
           echo "- Type: ${{ steps.bump-type.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
 
-  # Separate job for publishing that only runs when PR is merged
   publish:
     needs: version-bump
+    if: >
+      github.event_name == 'push' &&
+      contains(github.event.head_commit.message, 'chore(release): bump version')
+
     runs-on: ubuntu-latest
-    # Only run this job if PR was created and merged
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, 'chore(release): bump version')
-    
+
     permissions:
       contents: write
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org/'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build
         run: npm run build
-      
-      # Get the current version from package.json
+
       - name: Get version
         id: get-version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      
-      # Publish to npm using the NPM_TOKEN secret
+
       - name: Publish to npm
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
-      # Create a GitHub release based on the new tag
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -212,11 +188,10 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Add publish info to job summary
+
       - name: Add publish info to job summary
         run: |
           echo "## Package Published" >> $GITHUB_STEP_SUMMARY
           echo "- Version: v${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- Published to npm" >> $GITHUB_STEP_SUMMARY
-          echo "- GitHub release created" >> $GITHUB_STEP_SUMMARY 
+          echo "- GitHub release created" >> $GITHUB_STEP_SUMMARY
