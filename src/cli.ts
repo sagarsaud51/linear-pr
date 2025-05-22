@@ -11,6 +11,8 @@ import { createPullRequest } from './pr.js';
 import { validateTaskId, extractTaskIdFromBranchName } from './utils.js';
 import { LinearClient } from '@linear/sdk';
 import { Octokit } from 'octokit';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration constants
 const OAUTH_PORT = 45678;
@@ -332,6 +334,37 @@ program
       spinner.succeed(chalk.green('Pull request created successfully!'));
     } catch (error) {
       console.error(chalk.red('Error creating PR:'), error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+program
+  .command('version')
+  .description('Get the current package version')
+  .action(() => {
+    try {
+      // Read package.json from the project root
+      const packageJsonPath = path.join(process.cwd(), 'package.json');
+      
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        console.log(packageJson.version);
+      } else {
+        // Try to find package.json relative to the current script location
+        const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+        const projectRootPath = path.resolve(scriptDir, '..');
+        const fallbackPath = path.join(projectRootPath, 'package.json');
+        
+        if (fs.existsSync(fallbackPath)) {
+          const packageJson = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+          console.log(packageJson.version);
+        } else {
+          console.error(chalk.red('Error: package.json not found'));
+          process.exit(1);
+        }
+      }
+    } catch (error) {
+      console.error(chalk.red('Error reading package.json:'), error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   });
