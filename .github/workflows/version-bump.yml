@@ -179,6 +179,10 @@ jobs:
           echo "NPM registry version: $NPM_VERSION"
           if [ "$NPM_VERSION" = "$(node -p "require('./package.json').version")" ]; then
             echo "Version already exists in NPM registry. Incrementing patch version..."
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add .
+            git commit -m "chore: prepare for version bump" --allow-empty
             npm version patch -m "chore(release): auto bump patch version to %s due to npm conflict"
             NEW_VERSION=$(node -p "require('./package.json').version")
             echo "Updated to version: $NEW_VERSION"
