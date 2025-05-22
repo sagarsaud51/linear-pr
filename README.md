@@ -2,6 +2,8 @@
 
 A CLI tool to create GitHub PRs from Linear tasks with standardized naming conventions.
 
+[![.github/workflows/version-bump.yml](https://github.com/sagarsaud51/linear-pr/actions/workflows/version-bump.yml/badge.svg)](https://github.com/sagarsaud51/linear-pr/actions/workflows/version-bump.yml)
+
 ## Features
 
 - Create GitHub PRs directly from Linear task IDs or branch names

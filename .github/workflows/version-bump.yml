@@ -7,7 +7,7 @@ on:
       - main
     # Don't trigger on README updates or documentation changes
     paths-ignore:
-      - '**.md'
+      # - '**.md'
       - 'docs/**'
       - '.github/**'
 
