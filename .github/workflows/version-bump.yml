@@ -111,6 +111,13 @@ jobs:
         run: |
           git push origin ${{ steps.create-branch.outputs.branch_name }}
           
+      # Get commit information for PR body
+      - name: Get commit info
+        id: commit-info
+        run: |
+          COMMIT_INFO=$(git log -1 --pretty=format:"%h %s")
+          echo "commit_info=$COMMIT_INFO" >> $GITHUB_OUTPUT
+      
       # Create a PR for the version bump
       - name: Create Pull Request
         id: create-pr
@@ -134,7 +141,7 @@ jobs:
             
             ### Changes included
             ```
-            $(git log -1 --pretty=format:"%h %s")
+            ${{ steps.commit-info.outputs.commit_info }}
             ```
             
             ### Release notes
