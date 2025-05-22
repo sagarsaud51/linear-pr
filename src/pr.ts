@@ -207,7 +207,7 @@ ${task.description}
 <!-- Mention relevant team members or reviewers if needed. -->`;
     
     // Create the PR - pass the exact branch name
-    console.log(chalk.blue(`Creating PR: ${prTitle} `));
+    console.log(chalk.blue(`Creating PR: ${prTitle}`));
     const prUrl = await createGithubPR(
       prTitle,
       prBody,
